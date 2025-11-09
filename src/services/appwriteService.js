@@ -1,4 +1,4 @@
-import { Client, Databases, ID } from 'node-appwrite';
+import { Client, ID, TablesDB } from 'node-appwrite';
 
 // Initialize Appwrite client
 const client = new Client()
@@ -6,19 +6,21 @@ const client = new Client()
   .setProject(process.env.APPWRITE_PROJECT_ID)
   .setKey(process.env.APPWRITE_API_KEY);
 
-const databases = new Databases(client);
+const tablesDB = new TablesDB(client);
 
 // Save AI-generated study plan
-export const saveStudyPlan = async (userId, planData) => {
+export const saveStudyPlan = async (userId, weakTopics, availableHours, planData) => {
   try {
-    const document = await databases.createDocument(
+    const document = await tablesDB.createDocument(
       process.env.APPWRITE_DATABASE_ID,
       process.env.APPWRITE_PLANS_COLLECTION_ID,
       ID.unique(),
       {
         userId,
+        topics: weakTopics,
         planData: JSON.stringify(planData),
-        createdAt: new Date().toISOString()
+        availableHours,
+        aiVersion: 'gemini-2.0-flash-exp'
       }
     );
     console.log('Study plan saved:', document.$id);
@@ -32,7 +34,7 @@ export const saveStudyPlan = async (userId, planData) => {
 // Save generated flashcards
 export const saveFlashcards = async (userId, topic, flashcards) => {
   try {
-    const document = await databases.createDocument(
+    const document = await tablesDB.createDocument(
       process.env.APPWRITE_DATABASE_ID,
       process.env.APPWRITE_FLASHCARDS_COLLECTION_ID,
       ID.unique(),
@@ -40,7 +42,7 @@ export const saveFlashcards = async (userId, topic, flashcards) => {
         userId,
         topic,
         flashcards: JSON.stringify(flashcards),
-        createdAt: new Date().toISOString()
+        aiVersion: 'gemini-2.0-flash-exp'
       }
     );
     console.log('Flashcards saved:', document.$id);

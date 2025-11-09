@@ -1,14 +1,17 @@
-import express from 'express';
-import { generateResponse } from '../services/geminiService.js';
-import { extractTextFromImage } from '../services/ocrService.js';
-import { success, error } from '../utils/formatResponse.js';
-import { generateStudyPlanPrompt, generateFlashcardPrompt } from '../utils/promptTemplates.js';
-import { saveStudyPlan, saveFlashcards } from '../services/appwriteService.js';
+import express from "express";
+import { generateResponse } from "../services/geminiService.js";
+import { extractTextFromImage } from "../services/ocrService.js";
+import { success, error } from "../utils/formatResponse.js";
+import {
+  generateStudyPlanPrompt,
+  generateFlashcardPrompt,
+} from "../utils/promptTemplates.js";
+import { saveStudyPlan, saveFlashcards } from "../services/appwriteService.js";
 
 const router = express.Router();
 
 // POST /api/ai/solve-doubt - Solve NEET/JEE questions
-router.post('/solve-doubt', async (req, res) => {
+router.post("/solve-doubt", async (req, res) => {
   try {
     const { imageUrl, questionText, userId } = req.body;
 
@@ -19,7 +22,9 @@ router.post('/solve-doubt', async (req, res) => {
     }
 
     if (!question) {
-      return res.status(400).json(error('Either questionText or imageUrl is required', 400));
+      return res
+        .status(400)
+        .json(error("Either questionText or imageUrl is required", 400));
     }
 
     // Generate AI response with custom prompt
@@ -36,55 +41,65 @@ Provide:
 
     // Parse steps from AI response (split by numbered lines)
     const steps = aiAnswer
-      .split('\n')
-      .filter(line => /^\d+\./.test(line.trim()))
-      .map(step => step.trim());
+      .split("\n")
+      .filter((line) => /^\d+\./.test(line.trim()))
+      .map((step) => step.trim());
 
     // Detect subject from question keywords
     const subjectKeywords = {
-      Physics: ['force', 'velocity', 'energy', 'motion', 'acceleration'],
-      Chemistry: ['atom', 'molecule', 'reaction', 'element', 'compound'],
-      Biology: ['cell', 'organism', 'DNA', 'protein', 'tissue'],
-      Math: ['equation', 'calculate', 'solve', 'integral', 'derivative']
+      Physics: ["force", "velocity", "energy", "motion", "acceleration"],
+      Chemistry: ["atom", "molecule", "reaction", "element", "compound"],
+      Biology: ["cell", "organism", "DNA", "protein", "tissue"],
+      Math: ["equation", "calculate", "solve", "integral", "derivative"],
     };
 
-    let subject = 'General';
+    let subject = "General";
     for (const [subj, keywords] of Object.entries(subjectKeywords)) {
-      if (keywords.some(kw => question.toLowerCase().includes(kw))) {
+      if (keywords.some((kw) => question.toLowerCase().includes(kw))) {
         subject = subj;
         break;
       }
     }
 
     // Return structured response
-    res.json(success({
-      question,
-      aiAnswer,
-      steps: steps.length > 0 ? steps : [aiAnswer],
-      subject
-    }));
+    res.json(
+      success({
+        question,
+        aiAnswer,
+        steps: steps.length > 0 ? steps : [aiAnswer],
+        subject,
+      })
+    );
   } catch (err) {
-    console.error('solve-doubt error:', err.message);
+    console.error("solve-doubt error:", err.message);
     res.status(500).json(error(err.message));
   }
 });
 
 // POST /api/ai/generate-plan - Generate personalized study plan
-router.post('/generate-plan', async (req, res) => {
+router.post("/generate-plan", async (req, res) => {
   try {
     const { userId, weakTopics, availableHours } = req.body;
 
     // Validate inputs
     if (!userId || !weakTopics || !availableHours) {
-      return res.status(400).json(error('userId, weakTopics, and availableHours are required', 400));
+      return res
+        .status(400)
+        .json(
+          error("userId, weakTopics, and availableHours are required", 400)
+        );
     }
 
     if (!Array.isArray(weakTopics) || weakTopics.length === 0) {
-      return res.status(400).json(error('weakTopics must be a non-empty array', 400));
+      return res
+        .status(400)
+        .json(error("weakTopics must be a non-empty array", 400));
     }
 
-    if (typeof availableHours !== 'number' || availableHours <= 0) {
-      return res.status(400).json(error('availableHours must be a positive number', 400));
+    if (typeof availableHours !== "number" || availableHours <= 0) {
+      return res
+        .status(400)
+        .json(error("availableHours must be a positive number", 400));
     }
 
     // Build prompt for Gemini
@@ -101,34 +116,36 @@ router.post('/generate-plan', async (req, res) => {
       studyPlan = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(aiResponse);
     } catch (parseError) {
       // Fallback: create basic plan if parsing fails
-      const hoursPerTopic = Math.floor((availableHours * 60) / weakTopics.length);
-      studyPlan = weakTopics.map(topic => ({
+      const hoursPerTopic = Math.floor(
+        (availableHours * 60) / weakTopics.length
+      );
+      studyPlan = weakTopics.map((topic) => ({
         topic,
         duration: hoursPerTopic,
-        difficulty: 'medium'
+        difficulty: "medium",
       }));
     }
 
     // Save to Appwrite
-    await saveStudyPlan(userId, studyPlan);
-    console.log('✅ Saved to Appwrite for user:', userId);
+    await saveStudyPlan(userId, weakTopics, availableHours, studyPlan);
+    console.log("✅ Saved to Appwrite for user:", userId);
 
     // Return response
     res.json(success(studyPlan));
   } catch (err) {
-    console.error('generate-plan error:', err.message);
+    console.error("generate-plan error:", err.message);
     res.status(500).json(error(err.message));
   }
 });
 
 // POST /api/ai/generate-flashcards - Generate flashcards for a topic
-router.post('/generate-flashcards', async (req, res) => {
+router.post("/generate-flashcards", async (req, res) => {
   try {
     const { topic, userId } = req.body;
 
     // Validate input
     if (!topic) {
-      return res.status(400).json(error('topic is required', 400));
+      return res.status(400).json(error("topic is required", 400));
     }
 
     // Create prompt for Gemini
@@ -142,27 +159,31 @@ router.post('/generate-flashcards', async (req, res) => {
     try {
       // Extract JSON from response
       const jsonMatch = aiResponse.match(/\{\s*"topic"[\s\S]*\}/);
-      flashcardsData = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(aiResponse);
+      flashcardsData = jsonMatch
+        ? JSON.parse(jsonMatch[0])
+        : JSON.parse(aiResponse);
     } catch (parseError) {
       // Fallback: return raw response
       flashcardsData = {
         topic,
-        flashcards: [{
-          question: 'Unable to parse flashcards',
-          answer: aiResponse
-        }]
+        flashcards: [
+          {
+            question: "Unable to parse flashcards",
+            answer: aiResponse,
+          },
+        ],
       };
     }
 
     // Save to Appwrite
     if (userId) {
       await saveFlashcards(userId, topic, flashcardsData.flashcards);
-      console.log('✅ Saved to Appwrite for user:', userId);
+      console.log("✅ Saved to Appwrite for user:", userId);
     }
 
     res.json(success(flashcardsData));
   } catch (err) {
-    console.error('generate-flashcards error:', err.message);
+    console.error("generate-flashcards error:", err.message);
     res.status(500).json(error(err.message));
   }
 });
