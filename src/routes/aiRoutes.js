@@ -127,7 +127,7 @@ router.post("/generate-plan", async (req, res) => {
     }
 
     // Save to Appwrite
-    await saveStudyPlan(userId, weakTopics, availableHours, studyPlan);
+    await saveStudyPlan({ userId, weakTopics, availableHours, planData: studyPlan });
     console.log("✅ Saved to Appwrite for user:", userId);
 
     // Return response
@@ -177,7 +177,7 @@ router.post("/generate-flashcards", async (req, res) => {
 
     // Save to Appwrite
     if (userId) {
-      await saveFlashcards(userId, topic, flashcardsData.flashcards);
+      await saveFlashcards({ userId, topic, flashcards: flashcardsData.flashcards });
       console.log("✅ Saved to Appwrite for user:", userId);
     }
 
