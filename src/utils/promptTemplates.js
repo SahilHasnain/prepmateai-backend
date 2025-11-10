@@ -3,7 +3,7 @@
 // Generate study plan prompt for NEET/JEE
 export const generateStudyPlanPrompt = (weakTopics, hours) =>
   `Make a structured study plan for NEET/JEE covering these weak topics: ${weakTopics.join(
-    ", "
+    ", ",
   )} in ${hours} hours. Include topic, time (in mins), and difficulty.
 Return as JSON array: [{"topic": "...", "duration": number, "difficulty": "easy/medium/hard"}]`;
 

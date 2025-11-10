@@ -68,7 +68,7 @@ Provide:
         aiAnswer,
         steps: steps.length > 0 ? steps : [aiAnswer],
         subject,
-      })
+      }),
     );
   } catch (err) {
     console.error("solve-doubt error:", err.message);
@@ -86,7 +86,7 @@ router.post("/generate-plan", async (req, res) => {
       return res
         .status(400)
         .json(
-          error("userId, weakTopics, and availableHours are required", 400)
+          error("userId, weakTopics, and availableHours are required", 400),
         );
     }
 
@@ -117,7 +117,7 @@ router.post("/generate-plan", async (req, res) => {
     } catch (parseError) {
       // Fallback: create basic plan if parsing fails
       const hoursPerTopic = Math.floor(
-        (availableHours * 60) / weakTopics.length
+        (availableHours * 60) / weakTopics.length,
       );
       studyPlan = weakTopics.map((topic) => ({
         topic,
@@ -127,7 +127,12 @@ router.post("/generate-plan", async (req, res) => {
     }
 
     // Save to Appwrite
-    await saveStudyPlan({ userId, weakTopics, availableHours, planData: studyPlan });
+    await saveStudyPlan({
+      userId,
+      weakTopics,
+      availableHours,
+      planData: studyPlan,
+    });
     console.log("✅ Saved to Appwrite for user:", userId);
 
     // Return response
@@ -177,7 +182,11 @@ router.post("/generate-flashcards", async (req, res) => {
 
     // Save to Appwrite
     if (userId) {
-      await saveFlashcards({ userId, topic, flashcards: flashcardsData.flashcards });
+      await saveFlashcards({
+        userId,
+        topic,
+        flashcards: flashcardsData.flashcards,
+      });
       console.log("✅ Saved to Appwrite for user:", userId);
     }
 

@@ -34,6 +34,7 @@ npm install
 ```
 
 Add your Gemini API key in `.env`:
+
 ```
 PORT=5000
 GEMINI_API_KEY=your_key_here
@@ -49,9 +50,10 @@ npm start      # Production
 ## API Endpoints
 
 ### AI Routes
+
 - `POST /api/ai/solve-doubt` - Solve NEET/JEE questions
   ```json
-  { 
+  {
     "questionText": "Explain photosynthesis",
     "imageUrl": "https://example.com/image.jpg",
     "userId": "123"
@@ -59,12 +61,14 @@ npm start      # Production
   ```
 
 ### OCR Routes
+
 - `POST /api/ocr/extract-text` - Extract text from image
   ```json
   { "imageUrl": "https://example.com/image.jpg" }
   ```
 
 ### Health
+
 - `GET /api/health` - Server status
 - `GET /api/test-gemini` - Test Gemini connection
 
