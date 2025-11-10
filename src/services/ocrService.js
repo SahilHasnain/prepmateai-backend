@@ -1,18 +1,17 @@
 import Tesseract from "tesseract.js";
+import { logError } from "../utils/logger.js";
 
 // Extract text from image URL with preprocessing
 export const extractTextFromImage = async (imageUrl) => {
   try {
     const {
       data: { text },
-    } = await Tesseract.recognize(imageUrl, "eng", {
-      logger: (m) => console.log(m), // Log OCR progress
-    });
+    } = await Tesseract.recognize(imageUrl, "eng");
 
     // Return clean text (trimmed)
     return text.trim();
   } catch (error) {
-    console.error("OCR extraction error:", error.message);
+    logError("OCRService: extractTextFromImage failed", error);
     throw new Error("Failed to extract text from image");
   }
 };
@@ -25,7 +24,7 @@ export const extractText = async (imageBuffer) => {
     } = await Tesseract.recognize(imageBuffer, "eng");
     return text.trim();
   } catch (error) {
-    console.error("OCR buffer extraction error:", error.message);
+    logError("OCRService: extractText failed", error);
     throw new Error("Failed to extract text from image");
   }
 };

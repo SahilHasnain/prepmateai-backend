@@ -4,6 +4,9 @@ import cors from "cors";
 import morgan from "morgan";
 import aiRoutes from "./routes/aiRoutes.js";
 import ocrRoutes from "./routes/ocrRoutes.js";
+import progressRoutes from "./routes/progressRoutes.js";
+import dueRoutes from "./routes/dueRoutes.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
@@ -21,6 +24,8 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use("/api/ai", aiRoutes);
 app.use("/api/ocr", ocrRoutes);
+app.use("/api/progress", progressRoutes);
+app.use("/api/due", dueRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -32,12 +37,13 @@ app.get("/api/test-gemini", async (req, res) => {
   try {
     const { generateResponse } = await import("./services/geminiService.js");
     const response = await generateResponse("Who are you?");
-    console.log("Gemini AI Response:", response);
     res.json({ success: true, response });
   } catch (error) {
-    console.error("Gemini test failed:", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 export default app;

@@ -7,6 +7,7 @@ import {
   generateFlashcardPrompt,
 } from "../utils/promptTemplates.js";
 import { saveStudyPlan, saveFlashcards } from "../services/appwriteService.js";
+import { logInfo, logError } from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -14,6 +15,7 @@ const router = express.Router();
 router.post("/solve-doubt", async (req, res) => {
   try {
     const { imageUrl, questionText, userId } = req.body;
+    logInfo(`Received request on /solve-doubt for user: ${userId}`);
 
     // Get question text from OCR if not provided
     let question = questionText;
@@ -61,6 +63,8 @@ Provide:
       }
     }
 
+    logInfo(`Solved doubt successfully for user: ${userId}`);
+    
     // Return structured response
     res.json(
       success({
@@ -71,7 +75,7 @@ Provide:
       }),
     );
   } catch (err) {
-    console.error("solve-doubt error:", err.message);
+    logError("AIRoutes: solve-doubt failed", err);
     res.status(500).json(error(err.message));
   }
 });
@@ -80,6 +84,7 @@ Provide:
 router.post("/generate-plan", async (req, res) => {
   try {
     const { userId, weakTopics, availableHours } = req.body;
+    logInfo(`Received request on /generate-plan for user: ${userId}`);
 
     // Validate inputs
     if (!userId || !weakTopics || !availableHours) {
@@ -133,12 +138,12 @@ router.post("/generate-plan", async (req, res) => {
       availableHours,
       planData: studyPlan,
     });
-    console.log("✅ Saved to Appwrite for user:", userId);
+    logInfo(`Generated AI plan successfully for user: ${userId}`);
 
     // Return response
     res.json(success(studyPlan));
   } catch (err) {
-    console.error("generate-plan error:", err.message);
+    logError("AIRoutes: generate-plan failed", err);
     res.status(500).json(error(err.message));
   }
 });
@@ -147,6 +152,7 @@ router.post("/generate-plan", async (req, res) => {
 router.post("/generate-flashcards", async (req, res) => {
   try {
     const { topic, userId } = req.body;
+    logInfo(`Received request on /generate-flashcards for user: ${userId}`);
 
     // Validate input
     if (!topic) {
@@ -187,12 +193,12 @@ router.post("/generate-flashcards", async (req, res) => {
         topic,
         flashcards: flashcardsData.flashcards,
       });
-      console.log("✅ Saved to Appwrite for user:", userId);
+      logInfo(`Generated flashcards successfully for user: ${userId}`);
     }
 
     res.json(success(flashcardsData));
   } catch (err) {
-    console.error("generate-flashcards error:", err.message);
+    logError("AIRoutes: generate-flashcards failed", err);
     res.status(500).json(error(err.message));
   }
 });
