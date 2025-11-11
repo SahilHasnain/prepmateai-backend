@@ -6,6 +6,7 @@ import aiRoutes from "./routes/aiRoutes.js";
 import ocrRoutes from "./routes/ocrRoutes.js";
 import progressRoutes from "./routes/progressRoutes.js";
 import dueRoutes from "./routes/dueRoutes.js";
+import flashcardRoutes from "./routes/flashcardRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -26,6 +27,7 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/ocr", ocrRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/due", dueRoutes);
+app.use("/api/flashcards", flashcardRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {

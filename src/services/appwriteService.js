@@ -48,7 +48,7 @@ export const saveFlashcards = async ({ userId, topic, flashcards }) => {
         userId,
         topic,
         flashcards: JSON.stringify(flashcards),
-        aiVersion: "gemini-2.0-flash-exp",
+        aiVersion: "gemini-2.5-flash",
       },
     });
     console.log("Flashcards saved:", document.$id);
@@ -73,7 +73,7 @@ export const saveProgress = async ({
     // Check if progress exists
     const existing = await tablesDB.listRows({
       databaseId: process.env.APPWRITE_DATABASE_ID,
-      tableId: process.env.APPWRITE_PROGRESS_COLLECTION_ID,
+      tableId: process.env.APPWRITE_FLASHCARDS_PROGRESS_COLLECTION_ID,
       queries: [
         Query.equal("userId", userId),
         Query.equal("cardId", cardId),
@@ -95,7 +95,7 @@ export const saveProgress = async ({
     if (existing.rows && existing.rows.length > 0) {
       const document = await tablesDB.updateRow({
         databaseId: process.env.APPWRITE_DATABASE_ID,
-        tableId: process.env.APPWRITE_PROGRESS_COLLECTION_ID,
+        tableId: process.env.APPWRITE_FLASHCARDS_PROGRESS_COLLECTION_ID,
         rowId: existing.rows[0].$id,
         data,
       });
@@ -104,7 +104,7 @@ export const saveProgress = async ({
     } else {
       const document = await tablesDB.createRow({
         databaseId: process.env.APPWRITE_DATABASE_ID,
-        tableId: process.env.APPWRITE_PROGRESS_COLLECTION_ID,
+        tableId: process.env.APPWRITE_FLASHCARDS_PROGRESS_COLLECTION_ID,
         rowId: ID.unique(),
         data,
       });
@@ -124,7 +124,7 @@ export const getDueFlashcards = async (userId, limit = 20) => {
 
     const response = await tablesDB.listRows({
       databaseId: process.env.APPWRITE_DATABASE_ID,
-      tableId: process.env.APPWRITE_PROGRESS_COLLECTION_ID,
+      tableId: process.env.APPWRITE_FLASHCARDS_PROGRESS_COLLECTION_ID,
       queries: [
         Query.equal("userId", userId),
         Query.lessThanEqual("nextReview", now),
@@ -221,7 +221,7 @@ export const getUserProgressSummary = async (userId) => {
     // Get next upcoming review
     const response = await tablesDB.listRows({
       databaseId: process.env.APPWRITE_DATABASE_ID,
-      tableId: process.env.APPWRITE_PROGRESS_COLLECTION_ID,
+      tableId: process.env.APPWRITE_FLASHCARDS_PROGRESS_COLLECTION_ID,
       queries: [
         Query.equal("userId", userId),
         Query.greaterThan("nextReview", now),
