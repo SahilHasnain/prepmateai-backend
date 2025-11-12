@@ -37,12 +37,15 @@ router.post(
       const previousIntervalHours = previousProgress?.intervalHours || null;
 
       // Calculate next interval using SRS algorithm
-      const intervalHours = calculateIntervalHours(score, previousIntervalHours);
+      const intervalHours = calculateIntervalHours(
+        score,
+        previousIntervalHours,
+      );
 
       // Calculate next review time
       const lastReviewed = new Date();
       const nextReview = new Date(
-        lastReviewed.getTime() + intervalHours * 60 * 60 * 1000
+        lastReviewed.getTime() + intervalHours * 60 * 60 * 1000,
       );
 
       // Save progress to Appwrite
@@ -64,13 +67,13 @@ router.post(
           cardId,
           nextReview: nextReview.toISOString(),
           intervalHours,
-        })
+        }),
       );
     } catch (err) {
       logError("ProgressRoutes: update-progress failed", err);
       res.status(500).json(failure(err.message));
     }
-  }
+  },
 );
 
 // GET /api/progress/summary/:userId - Get user progress summary
@@ -89,7 +92,7 @@ router.get("/summary/:userId", async (req, res) => {
       success({
         nextReview: summary?.nextReview || null,
         topic: summary?.topic || null,
-      })
+      }),
     );
   } catch (err) {
     logError("ProgressRoutes: summary failed", err);

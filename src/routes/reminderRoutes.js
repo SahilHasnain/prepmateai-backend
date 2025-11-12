@@ -12,7 +12,9 @@ router.post("/set", async (req, res) => {
     logInfo(`Setting reminder for user: ${userId}`);
 
     if (!userId || !pushToken || !timeOfDay) {
-      return res.status(400).json(failure("userId, pushToken, and timeOfDay are required"));
+      return res
+        .status(400)
+        .json(failure("userId, pushToken, and timeOfDay are required"));
     }
 
     await saveReminder({ userId, pushToken, timeOfDay, enabled });

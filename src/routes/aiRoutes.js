@@ -71,7 +71,7 @@ Provide:
         aiAnswer,
         steps: steps.length > 0 ? steps : [aiAnswer],
         subject,
-      })
+      }),
     );
   } catch (err) {
     logError("AIRoutes: solve-doubt failed", err);
@@ -89,9 +89,7 @@ router.post("/generate-plan", async (req, res) => {
     if (!userId || !weakTopics || !availableHours) {
       return res
         .status(400)
-        .json(
-          failure("userId, weakTopics, and availableHours are required")
-        );
+        .json(failure("userId, weakTopics, and availableHours are required"));
     }
 
     if (!Array.isArray(weakTopics) || weakTopics.length === 0) {
@@ -121,7 +119,7 @@ router.post("/generate-plan", async (req, res) => {
     } catch (parseError) {
       // Fallback: create basic plan if parsing fails
       const hoursPerTopic = Math.floor(
-        (availableHours * 60) / weakTopics.length
+        (availableHours * 60) / weakTopics.length,
       );
       studyPlan = weakTopics.map((topic) => ({
         topic,

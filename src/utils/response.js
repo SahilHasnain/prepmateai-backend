@@ -2,14 +2,14 @@
 // Consistent response format improves client-side error handling and maintainability
 
 // Success response with data
-export const success = (data, message = 'ok') => ({
+export const success = (data, message = "ok") => ({
   success: true,
   data,
-  message
+  message,
 });
 
 // Failure response with error message
-export const failure = (message = 'error') => ({
+export const failure = (message = "error") => ({
   success: false,
-  message
+  message,
 });

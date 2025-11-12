@@ -99,7 +99,10 @@ export const runReminders = async () => {
           logInfo(`No due cards for user ${reminder.userId}`);
         }
       } catch (error) {
-        logError(`Failed to process reminder for user ${reminder.userId}`, error);
+        logError(
+          `Failed to process reminder for user ${reminder.userId}`,
+          error,
+        );
         failCount++;
       }
     }

@@ -300,11 +300,13 @@ export const getUserStats = async (userId) => {
 
     // Calculate today's stats
     const todayProgress = allProgress.filter(
-      (p) => new Date(p.lastReviewed) >= today
+      (p) => new Date(p.lastReviewed) >= today,
     );
 
     const cardsReviewedToday = todayProgress.length;
-    const cardsMasteredToday = todayProgress.filter((p) => p.score === 2).length;
+    const cardsMasteredToday = todayProgress.filter(
+      (p) => p.score === 2,
+    ).length;
 
     // Calculate deck progress
     const decksWithProgress = decks.map((deck) => {
@@ -315,7 +317,7 @@ export const getUserStats = async (userId) => {
       const masteredCards = deckProgress.filter((p) => p.score === 2).length;
 
       const lastReviewedCard = deckProgress.sort(
-        (a, b) => new Date(b.lastReviewed) - new Date(a.lastReviewed)
+        (a, b) => new Date(b.lastReviewed) - new Date(a.lastReviewed),
       )[0];
 
       return {

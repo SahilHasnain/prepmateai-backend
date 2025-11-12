@@ -11,9 +11,9 @@ export const logInfo = (message) => {
 // Log error messages with timestamp and optional stack trace
 export const logError = (message, error = null) => {
   console.error(`[ERROR] ${getTimestamp()} - ${message}`);
-  
+
   // Print stack trace if error object provided
   if (error?.stack) {
-    console.error('Stack:', error.stack);
+    console.error("Stack:", error.stack);
   }
 };
