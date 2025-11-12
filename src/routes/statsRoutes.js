@@ -1,5 +1,5 @@
 import express from "express";
-import { success, error } from "../utils/formatResponse.js";
+import { success, failure } from "../utils/response.js";
 import { getUserStats } from "../services/appwriteService.js";
 import { logInfo, logError } from "../utils/logger.js";
 
@@ -12,14 +12,14 @@ router.get("/:userId", async (req, res) => {
     logInfo(`Fetching stats for user: ${userId}`);
 
     if (!userId) {
-      return res.status(400).json(error("userId is required", 400));
+      return res.status(400).json(failure("userId is required"));
     }
 
     const stats = await getUserStats(userId);
     res.json(success(stats));
   } catch (err) {
     logError("StatsRoutes: fetch stats failed", err);
-    res.status(500).json(error(err.message));
+    res.status(500).json(failure(err.message));
   }
 });
 

@@ -1,7 +1,7 @@
 import express from "express";
 import { generateResponse } from "../services/geminiService.js";
 import { extractTextFromImage } from "../services/ocrService.js";
-import { success, error } from "../utils/formatResponse.js";
+import { success, failure } from "../utils/response.js";
 import {
   generateStudyPlanPrompt,
   generateFlashcardPrompt,
@@ -25,7 +25,7 @@ router.post("/solve-doubt", async (req, res) => {
     if (!question) {
       return res
         .status(400)
-        .json(error("Either questionText or imageUrl is required", 400));
+        .json(failure("Either questionText or imageUrl is required"));
     }
 
     // Generate AI response with custom prompt
@@ -75,7 +75,7 @@ Provide:
     );
   } catch (err) {
     logError("AIRoutes: solve-doubt failed", err);
-    res.status(500).json(error(err.message));
+    res.status(500).json(failure(err.message));
   }
 });
 
@@ -90,20 +90,20 @@ router.post("/generate-plan", async (req, res) => {
       return res
         .status(400)
         .json(
-          error("userId, weakTopics, and availableHours are required", 400)
+          failure("userId, weakTopics, and availableHours are required")
         );
     }
 
     if (!Array.isArray(weakTopics) || weakTopics.length === 0) {
       return res
         .status(400)
-        .json(error("weakTopics must be a non-empty array", 400));
+        .json(failure("weakTopics must be a non-empty array"));
     }
 
     if (typeof availableHours !== "number" || availableHours <= 0) {
       return res
         .status(400)
-        .json(error("availableHours must be a positive number", 400));
+        .json(failure("availableHours must be a positive number"));
     }
 
     // Build prompt for Gemini
@@ -143,7 +143,7 @@ router.post("/generate-plan", async (req, res) => {
     res.json(success(studyPlan));
   } catch (err) {
     logError("AIRoutes: generate-plan failed", err);
-    res.status(500).json(error(err.message));
+    res.status(500).json(failure(err.message));
   }
 });
 
@@ -155,7 +155,7 @@ router.post("/generate-flashcards", async (req, res) => {
 
     // Validate input
     if (!topic) {
-      return res.status(400).json(error("topic is required", 400));
+      return res.status(400).json(failure("topic is required"));
     }
 
     // Create prompt for Gemini
@@ -198,7 +198,7 @@ router.post("/generate-flashcards", async (req, res) => {
     res.json(success(flashcardsData));
   } catch (err) {
     logError("AIRoutes: generate-flashcards failed", err);
-    res.status(500).json(error(err.message));
+    res.status(500).json(failure(err.message));
   }
 });
 

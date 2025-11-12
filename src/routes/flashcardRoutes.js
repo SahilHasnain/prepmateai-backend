@@ -1,6 +1,6 @@
 import express from "express";
 import { Client, TablesDB, Query } from "node-appwrite";
-import { success, error } from "../utils/formatResponse.js";
+import { success, failure } from "../utils/response.js";
 import { logInfo, logError } from "../utils/logger.js";
 
 const router = express.Router();
@@ -29,7 +29,7 @@ router.get("/decks/:userId", async (req, res) => {
     res.json(success(response.rows || []));
   } catch (err) {
     logError("FlashcardRoutes: fetch decks failed", err);
-    res.status(500).json(error(err.message));
+    res.status(500).json(failure(err.message));
   }
 });
 

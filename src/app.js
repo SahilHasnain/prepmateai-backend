@@ -9,6 +9,7 @@ import dueRoutes from "./routes/dueRoutes.js";
 import flashcardRoutes from "./routes/flashcardRoutes.js";
 import statsRoutes from "./routes/statsRoutes.js";
 import deleteRoutes from "./routes/deleteRoutes.js";
+import reminderRoutes from "./routes/reminderRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -17,7 +18,7 @@ const app = express();
 app.use(
   cors({
     origin: ["http://localhost:8081", "exp://*"],
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   }),
 );
 app.use(morgan("dev"));
@@ -32,6 +33,7 @@ app.use("/api/due", dueRoutes);
 app.use("/api/flashcards", flashcardRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/decks", deleteRoutes);
+app.use("/api/reminders", reminderRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {

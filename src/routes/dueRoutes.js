@@ -1,5 +1,5 @@
 import express from "express";
-import { success, error } from "../utils/formatResponse.js";
+import { success, failure } from "../utils/response.js";
 import {
   getDueFlashcards,
   getLatestFlashcardDeck,
@@ -17,7 +17,7 @@ router.get("/today/:userId", async (req, res) => {
 
     // Validate userId
     if (!userId) {
-      return res.status(400).json(error("userId is required", 400));
+      return res.status(400).json(failure("userId is required"));
     }
 
     // Get due flashcards from progress collection
@@ -45,7 +45,7 @@ router.get("/today/:userId", async (req, res) => {
     res.json(success(dueCards));
   } catch (err) {
     logError("DueRoutes: today failed", err);
-    res.status(500).json(error(err.message));
+    res.status(500).json(failure(err.message));
   }
 });
 
