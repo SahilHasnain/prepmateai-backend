@@ -1,6 +1,6 @@
 import express from "express";
 import { extractTextFromImage } from "../services/ocrService.js";
-import { success, error } from "../utils/formatResponse.js";
+import { success, failure } from "../utils/response.js";
 import { logInfo, logError } from "../utils/logger.js";
 
 const router = express.Router();
@@ -12,7 +12,7 @@ router.post("/extract-text", async (req, res) => {
     logInfo(`Received request on /extract-text`);
 
     if (!imageUrl) {
-      return res.status(400).json(error("imageUrl is required", 400));
+      return res.status(400).json(failure("imageUrl is required"));
     }
 
     const text = await extractTextFromImage(imageUrl);
@@ -20,7 +20,7 @@ router.post("/extract-text", async (req, res) => {
     res.json(success({ text }));
   } catch (err) {
     logError("OCRRoutes: extract-text failed", err);
-    res.status(500).json(error(err.message));
+    res.status(500).json(failure(err.message));
   }
 });
 
