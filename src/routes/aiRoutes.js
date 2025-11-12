@@ -16,7 +16,6 @@ router.post("/solve-doubt", async (req, res) => {
   try {
     const { imageUrl, questionText, userId } = req.body;
     logInfo(`Received request on /solve-doubt for user: ${userId}`);
-
     // Get question text from OCR if not provided
     let question = questionText;
     if (!question && imageUrl) {
@@ -64,7 +63,7 @@ Provide:
     }
 
     logInfo(`Solved doubt successfully for user: ${userId}`);
-    
+
     // Return structured response
     res.json(
       success({
@@ -72,7 +71,7 @@ Provide:
         aiAnswer,
         steps: steps.length > 0 ? steps : [aiAnswer],
         subject,
-      }),
+      })
     );
   } catch (err) {
     logError("AIRoutes: solve-doubt failed", err);
@@ -91,7 +90,7 @@ router.post("/generate-plan", async (req, res) => {
       return res
         .status(400)
         .json(
-          error("userId, weakTopics, and availableHours are required", 400),
+          error("userId, weakTopics, and availableHours are required", 400)
         );
     }
 
@@ -122,7 +121,7 @@ router.post("/generate-plan", async (req, res) => {
     } catch (parseError) {
       // Fallback: create basic plan if parsing fails
       const hoursPerTopic = Math.floor(
-        (availableHours * 60) / weakTopics.length,
+        (availableHours * 60) / weakTopics.length
       );
       studyPlan = weakTopics.map((topic) => ({
         topic,

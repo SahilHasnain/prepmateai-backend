@@ -3,10 +3,12 @@ import { success, failure } from "../utils/response.js";
 import {
   saveProgress,
   getUserProgressSummary,
+  getCardProgress,
 } from "../services/appwriteService.js";
 import { progressSchema } from "../validators/flashcardValidator.js";
 import { logInfo, logError } from "../utils/logger.js";
 import { validate } from "../middleware/validate.js";
+import { calculateIntervalHours } from "../utils/srs.js";
 
 const router = express.Router();
 
@@ -17,58 +19,59 @@ const FEEDBACK_SCORES = {
   remembered: 2,
 };
 
-// SRS interval mapping (in hours)
-const SRS_INTERVALS = {
-  0: 2, // forgot -> 2 hours
-  1: 12, // unsure -> 12 hours
-  2: 48, // remembered -> 48 hours (2 days)
-};
-
 // POST /api/progress/update-progress - Update card review progress
-router.post("/update-progress", validate(progressSchema), async (req, res, next) => {
-  try {
-    // Get validated data from middleware
-    const { userId, cardId, topic, feedback } = req.validatedData;
-    logInfo(`Received request on /update-progress for user: ${userId}`);
+router.post(
+  "/update-progress",
+  validate(progressSchema),
+  async (req, res, next) => {
+    try {
+      // Get validated data from middleware
+      const { userId, cardId, topic, feedback } = req.validatedData;
+      logInfo(`Received request on /update-progress for user: ${userId}`);
 
-    // Map feedback to score
-    const score = FEEDBACK_SCORES[feedback];
+      // Map feedback to score
+      const score = FEEDBACK_SCORES[feedback];
 
-    // Get SRS interval
-    const intervalHours = SRS_INTERVALS[score];
+      // Get previous progress for this card
+      const previousProgress = await getCardProgress(userId, cardId);
+      const previousIntervalHours = previousProgress?.intervalHours || null;
 
-    // Calculate next review time
-    const lastReviewed = new Date();
-    const nextReview = new Date(
-      lastReviewed.getTime() + intervalHours * 60 * 60 * 1000,
-    );
+      // Calculate next interval using SRS algorithm
+      const intervalHours = calculateIntervalHours(score, previousIntervalHours);
 
-    // Save progress to Appwrite
-    await saveProgress({
-      userId,
-      cardId,
-      topic,
-      score,
-      intervalHours,
-      nextReview: nextReview.toISOString(),
-      lastReviewed: lastReviewed.toISOString(),
-    });
+      // Calculate next review time
+      const lastReviewed = new Date();
+      const nextReview = new Date(
+        lastReviewed.getTime() + intervalHours * 60 * 60 * 1000
+      );
 
-    logInfo(`Progress saved successfully for user: ${userId}`);
-    
-    // Return success response
-    res.status(200).json(
-      success({
+      // Save progress to Appwrite
+      await saveProgress({
+        userId,
         cardId,
-        nextReview: nextReview.toISOString(),
+        topic,
+        score,
         intervalHours,
-      }),
-    );
-  } catch (err) {
-    logError("ProgressRoutes: update-progress failed", err);
-    res.status(500).json(failure(err.message));
+        nextReview: nextReview.toISOString(),
+        lastReviewed: lastReviewed.toISOString(),
+      });
+
+      logInfo(`Progress saved successfully for user: ${userId}`);
+
+      // Return success response
+      res.status(200).json(
+        success({
+          cardId,
+          nextReview: nextReview.toISOString(),
+          intervalHours,
+        })
+      );
+    } catch (err) {
+      logError("ProgressRoutes: update-progress failed", err);
+      res.status(500).json(failure(err.message));
+    }
   }
-});
+);
 
 // GET /api/progress/summary/:userId - Get user progress summary
 router.get("/summary/:userId", async (req, res) => {
@@ -86,7 +89,7 @@ router.get("/summary/:userId", async (req, res) => {
       success({
         nextReview: summary?.nextReview || null,
         topic: summary?.topic || null,
-      }),
+      })
     );
   } catch (err) {
     logError("ProgressRoutes: summary failed", err);

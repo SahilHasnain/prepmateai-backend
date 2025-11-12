@@ -236,3 +236,106 @@ export const getUserProgressSummary = async (userId) => {
     throw new Error(`Failed to fetch progress summary: ${error.message}`);
   }
 };
+
+// Get card progress for SRS calculation
+export const getCardProgress = async (userId, cardId) => {
+  try {
+    const response = await tablesDB.listRows({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_FLASHCARDS_PROGRESS_COLLECTION_ID,
+      queries: [
+        Query.equal("userId", userId),
+        Query.equal("cardId", cardId),
+        Query.limit(1),
+      ],
+    });
+
+    return response.rows?.[0] || null;
+  } catch (error) {
+    logError("AppwriteService: getCardProgress failed", error);
+    return null; // Return null on error to use base interval
+  }
+};
+
+// Delete deck
+export const deleteDeck = async (deckId) => {
+  try {
+    await tablesDB.deleteRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_FLASHCARDS_COLLECTION_ID,
+      rowId: deckId,
+    });
+    console.log("Deck deleted:", deckId);
+    return true;
+  } catch (error) {
+    logError("AppwriteService: deleteDeck failed", error);
+    throw new Error(`Failed to delete deck: ${error.message}`);
+  }
+};
+
+// Get user statistics
+export const getUserStats = async (userId) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString();
+
+    // Get all decks
+    const decksResponse = await tablesDB.listRows({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_FLASHCARDS_COLLECTION_ID,
+      queries: [Query.equal("userId", userId)],
+    });
+
+    const decks = decksResponse.rows || [];
+
+    // Get all progress
+    const progressResponse = await tablesDB.listRows({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_FLASHCARDS_PROGRESS_COLLECTION_ID,
+      queries: [Query.equal("userId", userId)],
+    });
+
+    const allProgress = progressResponse.rows || [];
+
+    // Calculate today's stats
+    const todayProgress = allProgress.filter(
+      (p) => new Date(p.lastReviewed) >= today
+    );
+
+    const cardsReviewedToday = todayProgress.length;
+    const cardsMasteredToday = todayProgress.filter((p) => p.score === 2).length;
+
+    // Calculate deck progress
+    const decksWithProgress = decks.map((deck) => {
+      const flashcards = JSON.parse(deck.flashcards || "[]");
+      const totalCards = flashcards.length;
+
+      const deckProgress = allProgress.filter((p) => p.topic === deck.topic);
+      const masteredCards = deckProgress.filter((p) => p.score === 2).length;
+
+      const lastReviewedCard = deckProgress.sort(
+        (a, b) => new Date(b.lastReviewed) - new Date(a.lastReviewed)
+      )[0];
+
+      return {
+        deckId: deck.$id,
+        topic: deck.topic,
+        totalCards,
+        masteredCards,
+        progress: totalCards > 0 ? masteredCards / totalCards : 0,
+        lastReviewed: lastReviewedCard?.lastReviewed || null,
+      };
+    });
+
+    return {
+      totalDecks: decks.length,
+      cardsReviewedToday,
+      cardsMasteredToday,
+      decksWithProgress,
+    };
+  } catch (error) {
+    logError("AppwriteService: getUserStats failed", error);
+    throw new Error(`Failed to fetch user stats: ${error.message}`);
+  }
+};

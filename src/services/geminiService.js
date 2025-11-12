@@ -47,7 +47,7 @@ export const analyzeImage = async (imageBase64, prompt) => {
             },
           ],
         }),
-      },
+      }
     );
 
     if (!response.ok) {
