@@ -300,12 +300,12 @@ export const getUserStats = async (userId) => {
 
     // Calculate today's stats
     const todayProgress = allProgress.filter(
-      (p) => new Date(p.lastReviewed) >= today,
+      (p) => new Date(p.lastReviewed) >= today
     );
 
     const cardsReviewedToday = todayProgress.length;
     const cardsMasteredToday = todayProgress.filter(
-      (p) => p.score === 2,
+      (p) => p.score === 2
     ).length;
 
     // Calculate deck progress
@@ -317,7 +317,7 @@ export const getUserStats = async (userId) => {
       const masteredCards = deckProgress.filter((p) => p.score === 2).length;
 
       const lastReviewedCard = deckProgress.sort(
-        (a, b) => new Date(b.lastReviewed) - new Date(a.lastReviewed),
+        (a, b) => new Date(b.lastReviewed) - new Date(a.lastReviewed)
       )[0];
 
       return {
@@ -339,5 +339,297 @@ export const getUserStats = async (userId) => {
   } catch (error) {
     logError("AppwriteService: getUserStats failed", error);
     throw new Error(`Failed to fetch user stats: ${error.message}`);
+  }
+};
+
+// ==================== HABIT MANAGEMENT ====================
+
+// Create a new habit
+export const createHabit = async ({
+  userId,
+  title,
+  goalType,
+  goalValue,
+  frequency,
+  customDays = [],
+  stackCue = "",
+  reminderTime = "09:00",
+  timezone = "Asia/Kolkata",
+  active = true,
+}) => {
+  try {
+    const document = await tablesDB.createRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABITS_COLLECTION_ID,
+      rowId: ID.unique(),
+      data: {
+        userId,
+        title,
+        goalType,
+        goalValue,
+        frequency,
+        customDays: JSON.stringify(customDays),
+        stackCue,
+        reminderTime,
+        timezone,
+        active,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastCompletedAt: null,
+        missedYesterday: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+    logInfo("Habit created successfully", { habitId: document.$id });
+    return document;
+  } catch (error) {
+    logError("AppwriteService: createHabit failed", error);
+    throw new Error(`Failed to create habit: ${error.message}`);
+  }
+};
+
+// Get all habits for a user
+export const getHabits = async (userId, activeOnly = false) => {
+  try {
+    const queries = [Query.equal("userId", userId)];
+    if (activeOnly) {
+      queries.push(Query.equal("active", true));
+    }
+
+    const response = await tablesDB.listRows({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABITS_COLLECTION_ID,
+      queries,
+    });
+
+    // Parse customDays JSON for each habit
+    const habits = response.rows.map((habit) => ({
+      ...habit,
+      customDays: habit.customDays ? JSON.parse(habit.customDays) : [],
+    }));
+
+    return habits;
+  } catch (error) {
+    logError("AppwriteService: getHabits failed", error);
+    throw new Error(`Failed to fetch habits: ${error.message}`);
+  }
+};
+
+// Update an existing habit
+export const updateHabit = async (habitId, userId, updates) => {
+  try {
+    // Verify ownership before updating
+    const habit = await tablesDB.getRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABITS_COLLECTION_ID,
+      rowId: habitId,
+    });
+
+    if (habit.userId !== userId) {
+      throw new Error("Unauthorized: Habit does not belong to user");
+    }
+
+    // Stringify customDays if provided
+    const data = { ...updates };
+    if (data.customDays) {
+      data.customDays = JSON.stringify(data.customDays);
+    }
+
+    const updatedHabit = await tablesDB.updateRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABITS_COLLECTION_ID,
+      rowId: habitId,
+      data,
+    });
+
+    logInfo("Habit updated successfully", { habitId });
+    return {
+      ...updatedHabit,
+      customDays: updatedHabit.customDays
+        ? JSON.parse(updatedHabit.customDays)
+        : [],
+    };
+  } catch (error) {
+    logError("AppwriteService: updateHabit failed", error);
+    throw new Error(`Failed to update habit: ${error.message}`);
+  }
+};
+
+// Delete a habit
+export const deleteHabit = async (habitId, userId) => {
+  try {
+    // Verify ownership before deleting
+    const habit = await tablesDB.getRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABITS_COLLECTION_ID,
+      rowId: habitId,
+    });
+
+    if (habit.userId !== userId) {
+      throw new Error("Unauthorized: Habit does not belong to user");
+    }
+
+    await tablesDB.deleteRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABITS_COLLECTION_ID,
+      rowId: habitId,
+    });
+
+    logInfo("Habit deleted successfully", { habitId });
+    return true;
+  } catch (error) {
+    logError("AppwriteService: deleteHabit failed", error);
+    throw new Error(`Failed to delete habit: ${error.message}`);
+  }
+};
+
+// Record habit check-in (with never-miss-twice logic)
+export const checkInHabit = async ({
+  userId,
+  habitId,
+  completed,
+  mood,
+  timeSpent,
+  dailyWin,
+  completedAt,
+}) => {
+  try {
+    // Get current habit data
+    const habit = await tablesDB.getRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABITS_COLLECTION_ID,
+      rowId: habitId,
+    });
+
+    if (habit.userId !== userId) {
+      throw new Error("Unauthorized: Habit does not belong to user");
+    }
+
+    // Calculate streak updates (never-miss-twice logic)
+    const today = new Date(completedAt);
+    const lastCompleted = habit.lastCompletedAt
+      ? new Date(habit.lastCompletedAt)
+      : null;
+    let newStreak = habit.currentStreak || 0;
+    let missedYesterday = false;
+
+    if (lastCompleted) {
+      const daysSinceLastCompletion = Math.floor(
+        (today - lastCompleted) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysSinceLastCompletion === 1) {
+        // Completed yesterday, increment streak
+        newStreak = completed ? newStreak + 1 : newStreak;
+      } else if (daysSinceLastCompletion === 2) {
+        // Missed yesterday (never-miss-twice trigger)
+        missedYesterday = true;
+        newStreak = completed ? 1 : 0; // Reset streak if missed twice
+      } else if (daysSinceLastCompletion > 2) {
+        // Missed multiple days, reset streak
+        newStreak = completed ? 1 : 0;
+      }
+    } else {
+      // First check-in
+      newStreak = completed ? 1 : 0;
+    }
+
+    // Update habit with new streak data
+    const updatedHabit = await tablesDB.updateRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABITS_COLLECTION_ID,
+      rowId: habitId,
+      data: {
+        currentStreak: newStreak,
+        longestStreak: Math.max(newStreak, habit.longestStreak || 0),
+        lastCompletedAt: completed ? completedAt : habit.lastCompletedAt,
+        missedYesterday,
+      },
+    });
+
+    // Create check-in record
+    const checkInRecord = await tablesDB.createRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABIT_CHECKINS_COLLECTION_ID,
+      rowId: ID.unique(),
+      data: {
+        userId,
+        habitId,
+        completed,
+        mood: mood || null,
+        timeSpent: timeSpent || null,
+        dailyWin: dailyWin || null,
+        completedAt,
+      },
+    });
+
+    logInfo("Habit check-in recorded", {
+      habitId,
+      completed,
+      streak: newStreak,
+    });
+
+    return {
+      checkIn: checkInRecord,
+      streak: newStreak,
+      missedYesterday,
+    };
+  } catch (error) {
+    logError("AppwriteService: checkInHabit failed", error);
+    throw new Error(`Failed to record habit check-in: ${error.message}`);
+  }
+};
+
+// Get habit statistics
+export const getHabitStats = async (userId, habitId) => {
+  try {
+    // Get habit data
+    const habit = await tablesDB.getRow({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABITS_COLLECTION_ID,
+      rowId: habitId,
+    });
+
+    if (habit.userId !== userId) {
+      throw new Error("Unauthorized: Habit does not belong to user");
+    }
+
+    // Get all check-ins for this habit
+    const checkInsResponse = await tablesDB.listRows({
+      databaseId: process.env.APPWRITE_DATABASE_ID,
+      tableId: process.env.APPWRITE_HABIT_CHECKINS_COLLECTION_ID,
+      queries: [
+        Query.equal("habitId", habitId),
+        Query.orderDesc("completedAt"),
+      ],
+    });
+
+    const checkIns = checkInsResponse.rows;
+    const totalCheckIns = checkIns.length;
+    const completedCheckIns = checkIns.filter((c) => c.completed).length;
+    const completionRate =
+      totalCheckIns > 0
+        ? Math.round((completedCheckIns / totalCheckIns) * 100)
+        : 0;
+
+    // Get last 7 days of check-ins
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentCheckIns = checkIns.filter(
+      (c) => new Date(c.completedAt) >= sevenDaysAgo
+    );
+
+    return {
+      currentStreak: habit.currentStreak || 0,
+      longestStreak: habit.longestStreak || 0,
+      totalCheckIns,
+      completedCheckIns,
+      completionRate,
+      last7Days: recentCheckIns,
+      missedYesterday: habit.missedYesterday || false,
+    };
+  } catch (error) {
+    logError("AppwriteService: getHabitStats failed", error);
+    throw new Error(`Failed to fetch habit stats: ${error.message}`);
   }
 };
