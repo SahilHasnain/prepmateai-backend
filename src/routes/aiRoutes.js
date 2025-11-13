@@ -71,7 +71,7 @@ Provide:
         aiAnswer,
         steps: steps.length > 0 ? steps : [aiAnswer],
         subject,
-      }),
+      })
     );
   } catch (err) {
     logError("AIRoutes: solve-doubt failed", err);
@@ -119,7 +119,7 @@ router.post("/generate-plan", async (req, res) => {
     } catch (parseError) {
       // Fallback: create basic plan if parsing fails
       const hoursPerTopic = Math.floor(
-        (availableHours * 60) / weakTopics.length,
+        (availableHours * 60) / weakTopics.length
       );
       studyPlan = weakTopics.map((topic) => ({
         topic,
@@ -178,9 +178,18 @@ router.post("/generate-flashcards", async (req, res) => {
           {
             question: "Unable to parse flashcards",
             answer: aiResponse,
+            difficulty: "medium",
           },
         ],
       };
+    }
+
+    // Ensure all flashcards have difficulty field (default to medium if missing)
+    if (flashcardsData.flashcards) {
+      flashcardsData.flashcards = flashcardsData.flashcards.map((card) => ({
+        ...card,
+        difficulty: card.difficulty || "medium",
+      }));
     }
 
     // Save to Appwrite

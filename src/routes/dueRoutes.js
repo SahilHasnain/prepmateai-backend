@@ -33,6 +33,7 @@ router.get("/today/:userId", async (req, res) => {
           cardId: `${latestDeck.$id}_${index}`,
           question: card.question,
           answer: card.answer,
+          difficulty: card.difficulty || "medium", // AI-generated difficulty
           topic: latestDeck.topic,
           nextReview: null,
         }));
