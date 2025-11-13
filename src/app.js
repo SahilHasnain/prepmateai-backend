@@ -10,6 +10,7 @@ import flashcardRoutes from "./routes/flashcardRoutes.js";
 import statsRoutes from "./routes/statsRoutes.js";
 import deleteRoutes from "./routes/deleteRoutes.js";
 import reminderRoutes from "./routes/reminderRoutes.js";
+import habitRoutes from "./routes/habitRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -19,7 +20,7 @@ app.use(
   cors({
     origin: ["http://localhost:8081", "exp://*"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  }),
+  })
 );
 app.use(morgan("dev"));
 app.use(express.json());
@@ -34,6 +35,7 @@ app.use("/api/flashcards", flashcardRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/decks", deleteRoutes);
 app.use("/api/reminders", reminderRoutes);
+app.use("/api/habits", habitRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
